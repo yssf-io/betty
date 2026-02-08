@@ -6,7 +6,7 @@ export default function Welcome() {
             <header className="flex h-14 items-center justify-center px-4 pt-6">
                 <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-3xl">swipe</span>
-                    <span className="text-xl font-extrabold text-[#111827]">Predictly</span>
+                    <span className="text-xl font-extrabold text-[#111827]">Betty</span>
                 </div>
             </header>
 

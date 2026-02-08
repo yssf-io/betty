@@ -2,6 +2,8 @@
 
 **Tinder for Predictions** - Swipe your way through prediction markets.
 
+*This is a demo version of the app. It is not connected to any real blockchain.*
+
 ## Features
 
 - 👆 **Swipe Interface** - Right for YES, Left for NO, Down to SKIP
