@@ -50,7 +50,7 @@ export default function Welcome() {
             <footer className="w-full px-4 pb-8 pt-4">
                 <div className="flex px-0 py-0">
                     <Link
-                        to="/wallet"
+                        to="/predict"
                         className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 px-5 flex-1 bg-[#13ec5b] hover:bg-[#11d853] text-[#102216] text-lg font-bold leading-normal tracking-wide shadow-md"
                     >
                         <span className="truncate">Get Started</span>

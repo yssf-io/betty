@@ -1,57 +1,59 @@
-import { useState, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { predictions } from '../data/predictions'
-import { useWallet } from '../context/WalletContext'
+import { useGame } from '../context/GameContext'
 
 export default function Predict() {
     const navigate = useNavigate()
-    const { balance, betAmount, placeBet, canBet } = useWallet()
+    const { points, betAmount, placeBet } = useGame()
+
+    // Only show unresolved markets. Resolved ones live in history.
+    const deck = useMemo(() => predictions.filter((p) => p.outcome == null), [])
+
     const [currentIndex, setCurrentIndex] = useState(0)
     const [swipeClass, setSwipeClass] = useState('')
-    const [userPredictions, setUserPredictions] = useState([])
+    const [sessionBets, setSessionBets] = useState([])
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
     const [isDragging, setIsDragging] = useState(false)
     const [insufficientFunds, setInsufficientFunds] = useState(false)
     const startPos = useRef({ x: 0, y: 0 })
 
-    const currentPrediction = predictions[currentIndex]
-    const isFinished = currentIndex >= predictions.length
+    const currentPrediction = deck[currentIndex]
+    const isFinished = currentIndex >= deck.length
 
     const handleSwipe = (direction) => {
         if (isFinished) return
 
-        // For yes/no, require payment
         if (direction !== 'skip') {
-            if (!placeBet()) {
+            const choice = direction === 'right' ? 'yes' : 'no'
+            const ok = placeBet(currentPrediction, choice)
+            if (!ok) {
                 setInsufficientFunds(true)
                 setTimeout(() => setInsufficientFunds(false), 2000)
                 setDragOffset({ x: 0, y: 0 })
                 return
             }
+            setSessionBets((prev) => [
+                ...prev,
+                { ...currentPrediction, userChoice: choice, stake: betAmount },
+            ])
         }
 
-        const animClass = direction === 'right' ? 'card-swipe-right' : direction === 'left' ? 'card-swipe-left' : 'card-swipe-down'
+        const animClass =
+            direction === 'right'
+                ? 'card-swipe-right'
+                : direction === 'left'
+                    ? 'card-swipe-left'
+                    : 'card-swipe-down'
         setSwipeClass(animClass)
 
-        // Record the prediction
-        if (direction !== 'skip') {
-            setUserPredictions(prev => [...prev, {
-                ...currentPrediction,
-                userChoice: direction === 'right' ? 'yes' : 'no',
-                betAmount: betAmount,
-                timestamp: new Date().toISOString()
-            }])
-        }
-
-        // Move to next card after animation
         setTimeout(() => {
             setSwipeClass('')
             setDragOffset({ x: 0, y: 0 })
-            setCurrentIndex(prev => prev + 1)
+            setCurrentIndex((prev) => prev + 1)
         }, 300)
     }
 
-    // Touch/Mouse drag handlers
     const handleDragStart = (e) => {
         setIsDragging(true)
         const clientX = e.touches ? e.touches[0].clientX : e.clientX
@@ -65,7 +67,7 @@ export default function Predict() {
         const clientY = e.touches ? e.touches[0].clientY : e.clientY
         setDragOffset({
             x: clientX - startPos.current.x,
-            y: clientY - startPos.current.y
+            y: clientY - startPos.current.y,
         })
     }
 
@@ -85,7 +87,6 @@ export default function Predict() {
         }
     }
 
-    // Calculate rotation and opacity based on drag
     const rotation = dragOffset.x * 0.1
     const opacity = Math.max(0.5, 1 - Math.abs(dragOffset.x) / 300)
 
@@ -97,21 +98,35 @@ export default function Predict() {
                 </header>
                 <main className="flex flex-1 flex-col items-center justify-center p-6">
                     <div className="text-center mb-8">
-                        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">You made {userPredictions.length} predictions!</h2>
+                        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+                            You made {sessionBets.length} predictions!
+                        </h2>
                         <p className="text-slate-500">Check your profile to track your accuracy.</p>
                     </div>
                     <div className="w-full max-w-sm space-y-3">
-                        {userPredictions.map((pred, idx) => (
-                            <div key={idx} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <div className={`flex items-center justify-center rounded-xl shrink-0 size-10 ${pred.userChoice === 'yes' ? 'bg-green-50' : 'bg-red-50'}`}>
-                                    <span className={`material-symbols-outlined ${pred.userChoice === 'yes' ? 'text-green-600' : 'text-red-600'}`}>
+                        {sessionBets.map((pred, idx) => (
+                            <div
+                                key={idx}
+                                className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"
+                            >
+                                <div
+                                    className={`flex items-center justify-center rounded-xl shrink-0 size-10 ${pred.userChoice === 'yes' ? 'bg-green-50' : 'bg-red-50'
+                                        }`}
+                                >
+                                    <span
+                                        className={`material-symbols-outlined ${pred.userChoice === 'yes' ? 'text-green-600' : 'text-red-600'
+                                            }`}
+                                    >
                                         {pred.userChoice === 'yes' ? 'check_circle' : 'cancel'}
                                     </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-slate-900 text-sm truncate">{pred.question}</p>
-                                    <span className={`text-xs font-bold ${pred.userChoice === 'yes' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {pred.userChoice.toUpperCase()}
+                                    <span
+                                        className={`text-xs font-bold ${pred.userChoice === 'yes' ? 'text-green-600' : 'text-red-600'
+                                            }`}
+                                    >
+                                        {pred.userChoice.toUpperCase()} · {pred.stake} pts
                                     </span>
                                 </div>
                             </div>
@@ -130,10 +145,9 @@ export default function Predict() {
 
     return (
         <div className="relative mx-auto flex h-[100dvh] w-full flex-col overflow-hidden bg-[#F8FAFC]">
-            {/* Insufficient funds alert */}
             {insufficientFunds && (
                 <div className="absolute top-0 left-0 right-0 z-50 bg-red-500 text-white text-center py-3 px-4 font-bold animate-pulse">
-                    Insufficient funds! <Link to="/wallet" className="underline">Add USDC</Link>
+                    Out of points! <Link to="/settings" className="underline">Lower your stake</Link>
                 </div>
             )}
 
@@ -147,11 +161,10 @@ export default function Predict() {
                         <span className="material-symbols-outlined text-2xl">leaderboard</span>
                     </Link>
                 </div>
-                {/* Balance display */}
-                <Link to="/wallet" className="flex-1 flex flex-col items-center">
-                    <span className="text-xs text-slate-400 font-medium">Balance</span>
-                    <span className="text-lg font-extrabold text-slate-900">${balance.toFixed(2)}</span>
-                    <span className="text-[10px] text-primary font-bold">${betAmount.toFixed(2)}/swipe</span>
+                <Link to="/settings" className="flex-1 flex flex-col items-center">
+                    <span className="text-xs text-slate-400 font-medium">Points</span>
+                    <span className="text-lg font-extrabold text-slate-900">{points.toLocaleString()}</span>
+                    <span className="text-[10px] text-primary font-bold">{betAmount} pts/swipe</span>
                 </Link>
                 <div className="flex w-12 items-center justify-end">
                     <Link
@@ -163,23 +176,22 @@ export default function Predict() {
                 </div>
             </header>
 
-            {/* Main card area */}
             <main className="relative flex flex-1 flex-col items-center justify-center px-6 pt-4 pb-6">
-                {/* Background cards for stack effect */}
-                {currentIndex + 1 < predictions.length && (
+                {currentIndex + 1 < deck.length && (
                     <div className="absolute inset-x-8 top-10 h-[calc(100%-6rem)] rounded-[2.5rem] bg-white border border-slate-100 shadow-sm scale-90 transform opacity-40"></div>
                 )}
-                {currentIndex + 2 < predictions.length && (
+                {currentIndex + 2 < deck.length && (
                     <div className="absolute inset-x-8 top-7 h-[calc(100%-6rem)] rounded-[2.5rem] bg-white border border-slate-100 shadow-md scale-95 transform opacity-70"></div>
                 )}
 
-                {/* Current card */}
                 <div
                     className={`relative flex w-full flex-1 flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-slate-100 transition-transform cursor-grab active:cursor-grabbing ${swipeClass}`}
                     style={{
-                        transform: isDragging ? `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px) rotate(${rotation}deg)` : '',
+                        transform: isDragging
+                            ? `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px) rotate(${rotation}deg)`
+                            : '',
                         opacity: isDragging ? opacity : 1,
-                        transition: isDragging ? 'none' : 'transform 0.3s ease'
+                        transition: isDragging ? 'none' : 'transform 0.3s ease',
                     }}
                     onMouseDown={handleDragStart}
                     onMouseMove={handleDragMove}
@@ -189,13 +201,11 @@ export default function Predict() {
                     onTouchMove={handleDragMove}
                     onTouchEnd={handleDragEnd}
                 >
-                    {/* Image */}
                     <div
                         className="h-1/2 w-full bg-cover bg-center"
                         style={{ backgroundImage: `url("${currentPrediction.image}")` }}
                     ></div>
 
-                    {/* Content */}
                     <div className="flex flex-1 flex-col justify-between p-7">
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center gap-2">
@@ -216,7 +226,6 @@ export default function Predict() {
                         </button>
                     </div>
 
-                    {/* Swipe indicators */}
                     {isDragging && dragOffset.x > 50 && (
                         <div className="absolute top-8 right-8 px-4 py-2 bg-green-500 text-white font-bold rounded-xl rotate-12">
                             YES
@@ -235,7 +244,6 @@ export default function Predict() {
                 </div>
             </main>
 
-            {/* Footer with action buttons */}
             <footer className="px-6 pt-2 pb-10">
                 <div className="flex items-center justify-center gap-6">
                     <div className="flex flex-col items-center gap-2">
