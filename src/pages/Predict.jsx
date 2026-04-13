@@ -212,6 +212,9 @@ export default function Predict() {
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-600">
                                     {currentPrediction.category}
                                 </span>
+                                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-500">
+                                    {currentPrediction.yesPercent}% YES
+                                </span>
                             </div>
                             <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-slate-900">
                                 {currentPrediction.question}

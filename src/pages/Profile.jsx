@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useGame } from '../context/GameContext'
+import { useGame, calculatePayout } from '../context/GameContext'
 import { getPrediction } from '../data/predictions'
 
 function formatJoined(iso) {
@@ -8,10 +8,23 @@ function formatJoined(iso) {
     return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 }
 
+function formatDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 function classifyEntry(entry) {
     const pred = getPrediction(entry.predictionId)
     if (!pred || pred.outcome == null) return 'pending'
     return entry.choice === pred.outcome ? 'correct' : 'incorrect'
+}
+
+function describeEntry(entry, status) {
+    const date = formatDate(entry.timestamp)
+    if (status === 'correct') return `Won +${entry.wonPoints} pts · ${date}`
+    if (status === 'incorrect') return `Lost ${entry.stake} pts · ${date}`
+    const pct = entry.yesPercentAtBet ?? 50
+    const potential = calculatePayout(entry.stake, pct, entry.choice)
+    return `+${potential} at ${pct}% · ${date}`
 }
 
 export default function Profile() {
@@ -170,9 +183,7 @@ export default function Profile() {
                                     >
                                         {entry.choice.toUpperCase()}
                                     </span>
-                                    <p className="text-xs text-zinc-500">
-                                        {entry.stake} pts · {new Date(entry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    </p>
+                                    <p className="text-xs text-zinc-500">{describeEntry(entry, status)}</p>
                                 </div>
                             </div>
                             <span className="material-symbols-outlined text-zinc-300">chevron_right</span>

@@ -38,23 +38,6 @@ export default function Details() {
                         </p>
                     </div>
 
-                    {/* Community Consensus */}
-                    <div className="flex flex-col items-stretch justify-start rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-                        <h3 className="mb-4 text-base font-bold text-black">Community Consensus</h3>
-                        <div className="flex w-full flex-col gap-3">
-                            <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-red-100">
-                                <div
-                                    className="h-full bg-green-500 rounded-full"
-                                    style={{ width: `${prediction.yesPercent}%` }}
-                                ></div>
-                            </div>
-                            <div className="flex justify-between text-sm font-bold">
-                                <p className="text-green-600">{prediction.yesPercent}% Yes</p>
-                                <p className="text-red-600">{100 - prediction.yesPercent}% No</p>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Resolution Details */}
                     <div className="flex flex-col items-stretch justify-start rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
                         <div className="p-6 pb-2">

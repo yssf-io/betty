@@ -24,13 +24,14 @@ function loadState() {
     }
 }
 
-// Returns payout multiplier (total return per unit staked) for a correct pick
-// at the given community YES probability. Caps extremes to avoid div-by-zero
-// and absurd swings on 0%/100% markets.
-function oddsMultiplier(yesPercent, choice) {
+// Total points returned on a correct pick at the given community YES
+// probability, rounded to an integer. Clamps extremes to avoid div-by-zero
+// and absurd swings at 0%/100%. A correct pick on a 25% market pays 4x;
+// at 75% it pays ~1.33x.
+export function calculatePayout(stake, yesPercent, choice) {
     const clamp = Math.min(99, Math.max(1, yesPercent))
     const p = (choice === 'yes' ? clamp : 100 - clamp) / 100
-    return 1 / p
+    return Math.round(stake / p)
 }
 
 function settlePass(state) {
@@ -42,11 +43,10 @@ function settlePass(state) {
         if (!pred || pred.outcome == null) return entry
         changed = true
         const won = entry.choice === pred.outcome
-        if (won) {
-            const mult = oddsMultiplier(pred.yesPercent, entry.choice)
-            delta += Math.round(entry.stake * mult)
-        }
-        return { ...entry, settled: true, resolvedOutcome: pred.outcome, wonPoints: won ? Math.round(entry.stake * oddsMultiplier(pred.yesPercent, entry.choice)) : 0 }
+        const pct = entry.yesPercentAtBet ?? pred.yesPercent
+        const wonPoints = won ? calculatePayout(entry.stake, pct, entry.choice) : 0
+        delta += wonPoints
+        return { ...entry, settled: true, resolvedOutcome: pred.outcome, wonPoints }
     })
     if (!changed) return state
     return { ...state, points: state.points + delta, history: next }

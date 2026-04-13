@@ -1,12 +1,20 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useGame } from '../context/GameContext'
+import { useGame, calculatePayout } from '../context/GameContext'
 import { getPrediction } from '../data/predictions'
 
 function classify(entry) {
     const pred = getPrediction(entry.predictionId)
     if (!pred || pred.outcome == null) return 'pending'
     return entry.choice === pred.outcome ? 'correct' : 'wrong'
+}
+
+function describeEntry(entry, status) {
+    if (status === 'correct') return `Won +${entry.wonPoints} pts`
+    if (status === 'wrong') return `Lost ${entry.stake} pts`
+    const pct = entry.yesPercentAtBet ?? 50
+    const potential = calculatePayout(entry.stake, pct, entry.choice)
+    return `+${potential} at ${pct}% if right`
 }
 
 export default function Stats() {
@@ -142,7 +150,7 @@ export default function Stats() {
                                             {pred ? pred.question : 'Unknown market'}
                                         </p>
                                         <p className="text-stone-400 text-xs font-medium leading-normal mt-0.5">
-                                            {entry.choice.toUpperCase()} · {entry.stake} pts
+                                            {entry.choice.toUpperCase()} · {describeEntry(entry, status)}
                                         </p>
                                     </div>
                                 </div>
